@@ -141,7 +141,7 @@ for county_name in df["county"].unique():
     post_count = (county_data["Pre vs. Post"] == "post").sum()
 
     if county_name in list(montana["County"]):
-        if post_count > pre_count:
+        if post_count >= pre_count:
             montana.loc[montana["County"] == county_name, "Color"] = "red"
         elif pre_count > post_count:
             montana.loc[montana["County"] == county_name, "Color"] = "gray"
@@ -155,6 +155,14 @@ montana.plot(ax=ax, color=montana["Color"], alpha=0.65)
 red_count = (montana["Color"] == "red").sum()
 gray_count = (montana["Color"] == "gray").sum()
 white_count = (montana["Color"] == "white").sum()
+
+# Annotate
+for _, row in montana.iterrows():
+    plt.annotate(
+        row["County"].title(),  # Show with capitalized name
+        (row.geometry.centroid.x, row.geometry.centroid.y),
+        ha="center", fontsize=7
+    )
 
 plt.title("Montana County - Pre vs. Post Bee Sampling", fontsize=15)
 plt.figtext(0.5, 0.02, f"Post (red): {red_count}    Pre (gray): {gray_count}    Unmatched (white): {white_count}", 
