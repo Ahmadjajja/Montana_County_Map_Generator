@@ -22,21 +22,40 @@ wheels/
 
 # Virtual Environment
 venv/
-ENV/
 env/
+ENV/
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+.project
+.pydevproject
 
-# OS
+# Distribution
+dist/
+build/
+*.spec
+
+# Logs and databases
+*.log
+*.sqlite
+
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-nul
+
+# Application specific
+*.xlsx
+*.xls
+*.tiff
+!example_data/*.xlsx  # Allow example data files
 
 # Project specific
-*.tiff
-*.xlsx
 !requirements.txt 
