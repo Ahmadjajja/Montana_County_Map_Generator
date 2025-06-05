@@ -5,7 +5,7 @@ a = Analysis(
     ['GUI_MAP_Generator.py'],
     pathex=[],
     binaries=[],
-    datas=[('MontanaCounties_shp', 'MontanaCounties_shp')],
+    datas=[('MontanaCounties_shp/*', 'MontanaCounties_shp/')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
