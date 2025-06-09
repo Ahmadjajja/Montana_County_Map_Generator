@@ -745,17 +745,23 @@ class MainApplication:
                 f"Please check the console output for details and ensure county names match exactly."
             )
         
-        # Create figure with larger size and better proportions
-        fig, ax = self.plt.subplots(figsize=(12, 11))
+        # Create figure with calculated size
+        fig = self.plt.figure(figsize=(12, 11))
+        
+        # Create main map axis with sufficient space for title and legend
+        ax = fig.add_axes([0.1, 0.2, 0.8, 0.6])  # Adjusted to leave more space at top
         gdf_copy.boundary.plot(ax=ax, linewidth=1, edgecolor="black")
         gdf_copy.plot(ax=ax, color=gdf_copy["Color"], alpha=0.6)
         
+        # Add title with dynamic font size
         title = f"{fam.title()} > {gen.title()} > {spec.lower()}"
         if isinstance(year, int):
             subtitle = f"\nYear: {year}"
-            ax.set_title(title + subtitle, fontsize=15, pad=20)
-        else:
-            ax.set_title(title, fontsize=15, pad=20)
+            title += subtitle
+        
+        # Calculate dynamic font size based on figure width
+        title_fontsize = min(15, max(8, fig.get_figwidth() * 1.5))
+        ax.set_title(title, fontsize=title_fontsize, pad=25, wrap=True)  # Increased padding
         ax.axis("off")
         
         # Create a separate axis for the legend
@@ -880,9 +886,14 @@ class MainApplication:
         )
         title_label.pack()
         
+        # Calculate left and right panel widths based on screen size
+        screen_width = self.root.winfo_screenwidth()
+        left_panel_width = min(300, int(screen_width * 0.2))  # 20% of screen width or 300px, whichever is smaller
+        
         # Create left panel for controls with scrollbar
-        left_panel_container = ttk.Frame(main_container)
+        left_panel_container = ttk.Frame(main_container, width=left_panel_width)
         left_panel_container.pack(side='left', fill='y', padx=(0, 20))
+        left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
         
         # Back button at the top of left panel container (outside scroll area)
         back_button = ttk.Button(
@@ -898,14 +909,14 @@ class MainApplication:
         scrollbar.pack(side='right', fill='y')
         
         # Create canvas for scrollable content
-        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=300)
+        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=left_panel_width-20)  # Adjust for scrollbar
         self.scroll_canvas.pack(side='left', fill='y')
         
         scrollbar.config(command=self.scroll_canvas.yview)
         
         # Create frame for controls inside canvas
         left_panel = ttk.Frame(self.scroll_canvas)
-        self.scroll_canvas.create_window((0, 0), window=left_panel, anchor='nw', width=self.scroll_canvas.winfo_reqwidth())
+        self.scroll_canvas.create_window((0, 0), window=left_panel, anchor='nw', width=left_panel_width-20)
         
         # Excel Load Section
         excel_frame = ttk.LabelFrame(left_panel, text="Data Input", padding="10")
@@ -1044,9 +1055,31 @@ class MainApplication:
         )
         self.download_button.pack(fill='x', pady=(0, 5))
         
-        # Create right panel for map display
+        # Create right panel for map display with dynamic width
         self.right_panel = ttk.Frame(main_container)
         self.right_panel.pack(side='left', fill='both', expand=True)
+        
+        # Function to update panel sizes on window resize
+        def update_panel_sizes(event=None):
+            if event and event.widget != self.root:
+                return
+                
+            current_width = self.root.winfo_width()
+            new_left_width = min(300, int(current_width * 0.2))
+            
+            # Update left panel width
+            left_panel_container.configure(width=new_left_width)
+            self.scroll_canvas.configure(width=new_left_width-20)
+            self.scroll_canvas.itemconfig(self.scroll_canvas.find_all()[0], width=new_left_width-20)
+            
+            # Right panel will automatically adjust due to expand=True
+            
+            # If there's a map canvas, trigger a redraw
+            if hasattr(self, 'map_canvas') and self.map_canvas:
+                self.map_canvas.draw()
+        
+        # Bind resize event
+        self.root.bind('<Configure>', update_panel_sizes)
         
         # Configure scrolling
         def on_configure(event):
@@ -1527,17 +1560,23 @@ class SingleYearAnalysis:
                 f"Please check the console output for details and ensure county names match exactly."
             )
         
-        # Create figure with larger size and better proportions
-        fig, ax = self.plt.subplots(figsize=(12, 11))
+        # Create figure with calculated size
+        fig = self.plt.figure(figsize=(12, 11))
+        
+        # Create main map axis with sufficient space for title and legend
+        ax = fig.add_axes([0.1, 0.2, 0.8, 0.6])  # Adjusted to leave more space at top
         gdf_copy.boundary.plot(ax=ax, linewidth=1, edgecolor="black")
         gdf_copy.plot(ax=ax, color=gdf_copy["Color"], alpha=0.6)
         
+        # Add title with dynamic font size
         title = f"{fam.title()} > {gen.title()} > {spec.lower()}"
         if isinstance(year, int):
             subtitle = f"\nYear: {year}"
-            ax.set_title(title + subtitle, fontsize=15, pad=20)
-        else:
-            ax.set_title(title, fontsize=15, pad=20)
+            title += subtitle
+        
+        # Calculate dynamic font size based on figure width
+        title_fontsize = min(15, max(8, fig.get_figwidth() * 1.5))
+        ax.set_title(title, fontsize=title_fontsize, pad=25, wrap=True)  # Increased padding
         ax.axis("off")
         
         # Create a separate axis for the legend
@@ -1682,9 +1721,14 @@ class SingleYearAnalysis:
         )
         title_label.pack()
         
+        # Calculate left and right panel widths based on screen size
+        screen_width = self.root.winfo_screenwidth()
+        left_panel_width = min(300, int(screen_width * 0.2))  # 20% of screen width or 300px, whichever is smaller
+        
         # Create left panel for controls with scrollbar
-        left_panel_container = ttk.Frame(main_container)
+        left_panel_container = ttk.Frame(main_container, width=left_panel_width)
         left_panel_container.pack(side='left', fill='y', padx=(0, 20))
+        left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
         
         # Back button at the top of left panel container (outside scroll area)
         back_button = ttk.Button(
@@ -1700,14 +1744,14 @@ class SingleYearAnalysis:
         scrollbar.pack(side='right', fill='y')
         
         # Create canvas for scrollable content
-        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=300)
+        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=left_panel_width-20)  # Adjust for scrollbar
         self.scroll_canvas.pack(side='left', fill='y')
         
         scrollbar.config(command=self.scroll_canvas.yview)
         
         # Create frame for controls inside canvas
         left_panel = ttk.Frame(self.scroll_canvas)
-        self.scroll_canvas.create_window((0, 0), window=left_panel, anchor='nw', width=self.scroll_canvas.winfo_reqwidth())
+        self.scroll_canvas.create_window((0, 0), window=left_panel, anchor='nw', width=left_panel_width-20)
         
         # Excel Load Section
         excel_frame = ttk.LabelFrame(left_panel, text="Data Input", padding="10")
@@ -1846,9 +1890,31 @@ class SingleYearAnalysis:
         )
         self.download_button.pack(fill='x', pady=(0, 5))
         
-        # Create right panel for map display
+        # Create right panel for map display with dynamic width
         self.right_panel = ttk.Frame(main_container)
         self.right_panel.pack(side='left', fill='both', expand=True)
+        
+        # Function to update panel sizes on window resize
+        def update_panel_sizes(event=None):
+            if event and event.widget != self.root:
+                return
+                
+            current_width = self.root.winfo_width()
+            new_left_width = min(300, int(current_width * 0.2))
+            
+            # Update left panel width
+            left_panel_container.configure(width=new_left_width)
+            self.scroll_canvas.configure(width=new_left_width-20)
+            self.scroll_canvas.itemconfig(self.scroll_canvas.find_all()[0], width=new_left_width-20)
+            
+            # Right panel will automatically adjust due to expand=True
+            
+            # If there's a map canvas, trigger a redraw
+            if hasattr(self, 'map_canvas') and self.map_canvas:
+                self.map_canvas.draw()
+        
+        # Bind resize event
+        self.root.bind('<Configure>', update_panel_sizes)
         
         # Configure scrolling
         def on_configure(event):
@@ -2337,11 +2403,15 @@ class DualYearAnalysis:
                 f"Please check the console output for details and ensure county names match exactly."
             )
         
-        # Create figure with larger size and better proportions
-        fig, ax = self.plt.subplots(figsize=(12, 11))
+        # Create figure with calculated size
+        fig = self.plt.figure(figsize=(12, 11))
+        
+        # Create main map axis with sufficient space for title and legend
+        ax = fig.add_axes([0.1, 0.2, 0.8, 0.6])  # Adjusted to leave more space at top
         gdf_copy.boundary.plot(ax=ax, linewidth=1, edgecolor="black")
         gdf_copy.plot(ax=ax, color=gdf_copy["Color"], alpha=0.6)
         
+        # Add title with dynamic font size
         title = f"{fam.title()} > {gen.title()} > {spec.lower()}\nYears: {first_year} - {second_year}"
         ax.set_title(title, fontsize=15, pad=20)
         ax.axis("off")
@@ -2485,9 +2555,14 @@ class DualYearAnalysis:
         )
         title_label.pack()
         
+        # Calculate left and right panel widths based on screen size
+        screen_width = self.root.winfo_screenwidth()
+        left_panel_width = min(300, int(screen_width * 0.2))  # 20% of screen width or 300px, whichever is smaller
+        
         # Create left panel for controls with scrollbar
-        left_panel_container = ttk.Frame(main_container)
+        left_panel_container = ttk.Frame(main_container, width=left_panel_width)
         left_panel_container.pack(side='left', fill='y', padx=(0, 20))
+        left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
         
         # Back button at the top of left panel container (outside scroll area)
         back_button = ttk.Button(
@@ -2503,14 +2578,14 @@ class DualYearAnalysis:
         scrollbar.pack(side='right', fill='y')
         
         # Create canvas for scrollable content
-        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=300)
+        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=left_panel_width-20)  # Adjust for scrollbar
         self.scroll_canvas.pack(side='left', fill='y')
         
         scrollbar.config(command=self.scroll_canvas.yview)
         
         # Create frame for controls inside canvas
         left_panel = ttk.Frame(self.scroll_canvas)
-        self.scroll_canvas.create_window((0, 0), window=left_panel, anchor='nw', width=self.scroll_canvas.winfo_reqwidth())
+        self.scroll_canvas.create_window((0, 0), window=left_panel, anchor='nw', width=left_panel_width-20)
         
         # Excel Load Section
         excel_frame = ttk.LabelFrame(left_panel, text="Data Input", padding="10")
@@ -2667,9 +2742,31 @@ class DualYearAnalysis:
         )
         self.download_button.pack(fill='x', pady=(0, 5))
         
-        # Create right panel for map display
+        # Create right panel for map display with dynamic width
         self.right_panel = ttk.Frame(main_container)
         self.right_panel.pack(side='left', fill='both', expand=True)
+        
+        # Function to update panel sizes on window resize
+        def update_panel_sizes(event=None):
+            if event and event.widget != self.root:
+                return
+                
+            current_width = self.root.winfo_width()
+            new_left_width = min(300, int(current_width * 0.2))
+            
+            # Update left panel width
+            left_panel_container.configure(width=new_left_width)
+            self.scroll_canvas.configure(width=new_left_width-20)
+            self.scroll_canvas.itemconfig(self.scroll_canvas.find_all()[0], width=new_left_width-20)
+            
+            # Right panel will automatically adjust due to expand=True
+            
+            # If there's a map canvas, trigger a redraw
+            if hasattr(self, 'map_canvas') and self.map_canvas:
+                self.map_canvas.draw()
+        
+        # Bind resize event
+        self.root.bind('<Configure>', update_panel_sizes)
         
         # Configure scrolling
         def on_configure(event):
