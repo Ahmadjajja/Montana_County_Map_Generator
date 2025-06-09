@@ -829,8 +829,8 @@ class MainApplication:
                 spec = self.selected_species.get().strip().lower()
                 year = self.year_var.get().strip()
                 
-                # Create short timestamp (just MMDD_HHMM)
-                timestamp = datetime.datetime.now().strftime("%m%d_%H%M")
+                # Create timestamp with current date (YYYYMMDD_HHMM)
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
                 
                 # Create filename with taxonomic info
                 year_info = f"_{year}" if year else ""
@@ -1273,13 +1273,19 @@ class SingleYearAnalysis:
             
             # Update Family dropdown
             self.family_dropdown["values"] = family_values
-            self.family_dropdown.set("Select Family")
+            self.family_dropdown.set("All")
             
-            # Reset other dropdowns and fields
-            self.genus_dropdown.set("Select Genus")
-            self.genus_dropdown["values"] = []
-            self.species_dropdown.set("Select Species")
-            self.species_dropdown["values"] = []
+            # Trigger genus dropdown update
+            self.update_genus_dropdown()
+            
+            # Set genus to "All" and trigger species update
+            self.genus_dropdown.set("All")
+            self.update_species_dropdown()
+            
+            # Set species to "all"
+            self.species_dropdown.set("all")
+            
+            # Reset year field
             self.year_var.set("")
             
             # Update file info display
@@ -1605,8 +1611,8 @@ class SingleYearAnalysis:
                 spec = self.selected_species.get().strip().lower()
                 year = self.year_var.get().strip()
                 
-                # Create short timestamp (just MMDD_HHMM)
-                timestamp = datetime.datetime.now().strftime("%m%d_%H%M")
+                # Create timestamp with current date (YYYYMMDD_HHMM)
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
                 
                 # Create filename with taxonomic info
                 year_info = f"_{year}" if year else ""
@@ -2050,13 +2056,19 @@ class DualYearAnalysis:
             
             # Update Family dropdown
             self.family_dropdown["values"] = family_values
-            self.family_dropdown.set("Select Family")
+            self.family_dropdown.set("All")
             
-            # Reset other dropdowns and fields
-            self.genus_dropdown.set("Select Genus")
-            self.genus_dropdown["values"] = []
-            self.species_dropdown.set("Select Species")
-            self.species_dropdown["values"] = []
+            # Trigger genus dropdown update
+            self.update_genus_dropdown()
+            
+            # Set genus to "All" and trigger species update
+            self.genus_dropdown.set("All")
+            self.update_species_dropdown()
+            
+            # Set species to "all"
+            self.species_dropdown.set("all")
+            
+            # Reset year fields
             self.first_year_var.set("")
             self.second_year_var.set("")
             
@@ -2403,8 +2415,8 @@ class DualYearAnalysis:
                 first_year = self.first_year_var.get().strip()
                 second_year = self.second_year_var.get().strip()
                 
-                # Create short timestamp (just MMDD_HHMM)
-                timestamp = datetime.datetime.now().strftime("%m%d_%H%M")
+                # Create timestamp with current date (YYYYMMDD_HHMM)
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
                 
                 # Create filename with taxonomic info
                 filename = f"{fam}-{gen}-{spec}_{first_year}-{second_year}_{timestamp}.tiff"
