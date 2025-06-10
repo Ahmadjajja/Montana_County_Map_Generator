@@ -6,6 +6,29 @@ import datetime
 import sys
 import pandas as pd
 
+def get_screen_geometry():
+    """Get the geometry of all available screens"""
+    root = tk.Tk()
+    root.withdraw()  # Hide the temporary window
+    
+    # Get primary screen dimensions
+    primary_width = root.winfo_screenwidth()
+    primary_height = root.winfo_screenheight()
+    
+    # Get all screen dimensions using _tkinter.tcl_call
+    try:
+        # This gets info about all screens
+        screens_info = root.tk.call('wm', 'maxsize', '.')
+        all_screens_width = screens_info[0]
+        all_screens_height = screens_info[1]
+    except:
+        # Fallback to primary screen if can't get all screens
+        all_screens_width = primary_width
+        all_screens_height = primary_height
+    
+    root.destroy()
+    return primary_width, primary_height, all_screens_width, all_screens_height
+
 class SplashScreen:
     def __init__(self, parent):
         self.root = tk.Toplevel(parent)
@@ -127,6 +150,19 @@ class SelectionScreen:
         self.root.title("Analysis Selection")
         self.main_app = main_app
         
+        # Set window icon
+        if getattr(sys, 'frozen', False):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(base_dir, "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
+        
+        # Allow the window to be moved to any screen
+        self.root.attributes('-alpha', 1.0)
+        self.root.attributes('-topmost', False)
+        
         # Get screen dimensions
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -149,6 +185,9 @@ class SelectionScreen:
         else:
             # Center the window using geometry manager
             self.root.geometry(f"{self.default_width}x{self.default_height}+{self.x_position}+{self.y_position}")
+        
+        # Make sure window can be dragged between monitors
+        self.root.resizable(True, True)
         
         # Update window to ensure proper sizing
         self.root.update_idletasks()
@@ -290,6 +329,27 @@ class MainApplication:
     def __init__(self):
         # Create and hide the root window
         self.root = tk.Tk()
+        
+        # Set the application icon
+        if getattr(sys, 'frozen', False):
+            # If running as exe
+            base_dir = sys._MEIPASS
+        else:
+            # If running as script
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        icon_path = os.path.join(base_dir, "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
+        
+        # Get screen information
+        self.primary_width, self.primary_height, self.all_screens_width, self.all_screens_height = get_screen_geometry()
+        
+        # Allow the window to be moved to any screen
+        self.root.attributes('-alpha', 1.0)  # Ensure window is visible
+        self.root.attributes('-topmost', False)  # Don't force window to stay on top
+        
+        # Hide initially for setup
         self.root.withdraw()
         
         # Initialize variables
@@ -1127,6 +1187,10 @@ class SingleYearAnalysis:
         self.root = tk.Toplevel(parent)
         self.root.title("Single Year Analysis - Montana Bee County Map Generator")
         
+        # Allow the window to be moved to any screen
+        self.root.attributes('-alpha', 1.0)
+        self.root.attributes('-topmost', False)
+        
         # Store main_app reference
         self.main_app = main_app
         
@@ -1135,21 +1199,26 @@ class SingleYearAnalysis:
         self.plt = main_app.plt
         self.FigureCanvasTkAgg = main_app.FigureCanvasTkAgg
         
-        # Get screen dimensions and set window to full screen
+        # Set window icon
+        if getattr(sys, 'frozen', False):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(base_dir, "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
+        
+        # Get screen dimensions
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
+        
+        # Set window to full screen but allow movement
         self.root.geometry(f"{screen_width}x{screen_height}+0+0")
         self.root.state('zoomed')
         
-        # Set minimum window size
-        self.root.minsize(800, 600)
+        # Ensure window can be moved and resized
         self.root.resizable(True, True)
-        
-        # Calculate default restored window size (80% of screen)
-        self.default_width = int(screen_width * 0.8)
-        self.default_height = int(screen_height * 0.8)
-        self.x_position = (screen_width - self.default_width) // 2
-        self.y_position = (screen_height - self.default_height) // 2
+        self.root.minsize(800, 600)
         
         # Initialize variables
         self.map_canvas = None
@@ -1942,6 +2011,10 @@ class DualYearAnalysis:
         self.root = tk.Toplevel(parent)
         self.root.title("Dual Year Analysis - Montana Bee County Map Generator")
         
+        # Allow the window to be moved to any screen
+        self.root.attributes('-alpha', 1.0)
+        self.root.attributes('-topmost', False)
+        
         # Store main_app reference
         self.main_app = main_app
         
@@ -1950,21 +2023,26 @@ class DualYearAnalysis:
         self.plt = main_app.plt
         self.FigureCanvasTkAgg = main_app.FigureCanvasTkAgg
         
-        # Get screen dimensions and set window to full screen
+        # Set window icon
+        if getattr(sys, 'frozen', False):
+            base_dir = sys._MEIPASS
+        else:
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+        icon_path = os.path.join(base_dir, "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.root.iconbitmap(icon_path)
+        
+        # Get screen dimensions
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
+        
+        # Set window to full screen but allow movement
         self.root.geometry(f"{screen_width}x{screen_height}+0+0")
         self.root.state('zoomed')
         
-        # Set minimum window size
-        self.root.minsize(800, 600)
+        # Ensure window can be moved and resized
         self.root.resizable(True, True)
-        
-        # Calculate default restored window size (80% of screen)
-        self.default_width = int(screen_width * 0.8)
-        self.default_height = int(screen_height * 0.8)
-        self.x_position = (screen_width - self.default_width) // 2
-        self.y_position = (screen_height - self.default_height) // 2
+        self.root.minsize(800, 600)
         
         # Initialize variables
         self.map_canvas = None
