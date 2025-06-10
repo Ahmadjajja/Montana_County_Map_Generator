@@ -1,12 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-block_cipher = None
 
 a = Analysis(
     ['GUI_MAP_Generator.py'],
     pathex=[],
     binaries=[],
-    datas=[('MontanaCounties_shp/*', 'MontanaCounties_shp/'), ('app_icon.ico', '.')],
+    datas=[('MontanaCounties_shp', 'MontanaCounties_shp'), ('app_icon.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -36,6 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='app_icon.ico',
-    version='file_version_info.txt'
+    icon=['app_icon.ico'],
 )

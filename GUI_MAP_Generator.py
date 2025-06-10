@@ -167,27 +167,18 @@ class SelectionScreen:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # Calculate window size (80% of screen)
-        self.default_width = int(screen_width * 0.8)
-        self.default_height = int(screen_height * 0.8)
-        
-        # Calculate center position
-        self.x_position = (screen_width - self.default_width) // 2
-        self.y_position = (screen_height - self.default_height) // 2
-        
-        # Set minimum size before setting geometry
+        # Set minimum size and make window resizable
         self.root.minsize(600, 400)
-        
-        if from_analysis:
-            # Set to full screen when coming from analysis pages
-            self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-            self.root.state('zoomed')
-        else:
-            # Center the window using geometry manager
-            self.root.geometry(f"{self.default_width}x{self.default_height}+{self.x_position}+{self.y_position}")
-        
-        # Make sure window can be dragged between monitors
         self.root.resizable(True, True)
+        
+        # Set initial size to 80% of screen
+        initial_width = int(screen_width * 0.8)
+        initial_height = int(screen_height * 0.8)
+        x_position = (screen_width - initial_width) // 2
+        y_position = (screen_height - initial_height) // 2
+        
+        # Set initial geometry but don't enforce it
+        self.root.geometry(f"{initial_width}x{initial_height}+{x_position}+{y_position}")
         
         # Update window to ensure proper sizing
         self.root.update_idletasks()
@@ -314,16 +305,36 @@ class SelectionScreen:
         copyright_label.pack(side='right')
     
     def start_single_year_analysis(self):
+        # Store current position and state
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        current_state = self.root.state()
         self.root.destroy()
-        SingleYearAnalysis(self.root.master, self.main_app)
+        analysis = SingleYearAnalysis(self.root.master, self.main_app)
+        # Set position first
+        analysis.root.geometry(f"{analysis.root.winfo_screenwidth()}x{analysis.root.winfo_screenheight()}+{x}+{y}")
+        analysis.root.update()  # Force geometry update
+        # Restore the previous window state
+        if current_state == 'zoomed':
+            analysis.root.state('zoomed')
     
     def start_dual_year_analysis(self):
+        # Store current position and state
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        current_state = self.root.state()
         self.root.destroy()
-        DualYearAnalysis(self.root.master, self.main_app)
+        analysis = DualYearAnalysis(self.root.master, self.main_app)
+        # Set position first
+        analysis.root.geometry(f"{analysis.root.winfo_screenwidth()}x{analysis.root.winfo_screenheight()}+{x}+{y}")
+        analysis.root.update()  # Force geometry update
+        # Restore the previous window state
+        if current_state == 'zoomed':
+            analysis.root.state('zoomed')
     
     def on_window_resize(self, event=None):
-        if self.root.state() == 'normal':
-            self.root.geometry(f"{self.default_width}x{self.default_height}+{self.x_position}+{self.y_position}")
+        # Allow free movement and resizing
+        pass
 
 class MainApplication:
     def __init__(self):
@@ -968,8 +979,17 @@ class MainApplication:
         scrollbar = ttk.Scrollbar(left_panel_container)
         scrollbar.pack(side='right', fill='y')
         
-        # Create canvas for scrollable content
-        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=left_panel_width-20)  # Adjust for scrollbar
+        # Create canvas for scrollable content with matching background
+        bg_color = style.lookup('TFrame', 'background')  # Get ttk frame background color
+        if not bg_color:  # Fallback if style lookup fails
+            bg_color = self.left_panel_container.cget('background')
+        self.scroll_canvas = Canvas(
+            left_panel_container,
+            yscrollcommand=scrollbar.set,
+            width=left_panel_width-20,
+            bg=bg_color,
+            highlightthickness=0  # Remove border
+        )
         self.scroll_canvas.pack(side='left', fill='y')
         
         scrollbar.config(command=self.scroll_canvas.yview)
@@ -1159,28 +1179,82 @@ class MainApplication:
     
     def go_back(self):
         """Return to the selection screen"""
+        # Store current position and state
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        current_state = self.root.state()
         self.root.destroy()
-        SelectionScreen(self.root.master, self.main_app, from_analysis=True)
+        selection = SelectionScreen(self.root.master, self.main_app, from_analysis=True)
+        # Set position first
+        selection.root.geometry(f"{selection.root.winfo_screenwidth()}x{selection.root.winfo_screenheight()}+{x}+{y}")
+        selection.root.update()  # Force geometry update
+        # Restore the previous window state
+        if current_state == 'zoomed':
+            selection.root.state('zoomed')
     
     def on_window_resize(self, event=None):
-        if self.root.state() == 'normal':  # Only handle when window is restored (not maximized)
-            # Recalculate screen center
-            screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
+        try:
+            # Get current window dimensions
+            current_width = self.root.winfo_width()
+            current_height = self.root.winfo_height()
             
-            # Ensure we maintain 80% size
-            self.default_width = int(screen_width * 0.8)
-            self.default_height = int(screen_height * 0.8)
+            # Only process if we have valid dimensions
+            if current_width <= 1 or current_height <= 1:
+                return
+                
+            # Store current dimensions for restoring from maximize
+            if not hasattr(self, 'last_valid_size'):
+                self.last_valid_size = {
+                    'width': current_width,
+                    'height': current_height,
+                    'x': self.root.winfo_x(),
+                    'y': self.root.winfo_y()
+                }
             
-            # Recalculate center position
-            x = (screen_width - self.default_width) // 2
-            y = (screen_height - self.default_height) // 2
+            # Update panels if needed
+            self.update_panel_sizes()
+                
+        except Exception as e:
+            print(f"Warning: Resize handling error: {str(e)}")  # For debugging
+            pass  # Silently handle any errors during resize
+
+    def update_panel_sizes(self):
+        try:
+            current_width = self.root.winfo_width()
             
-            # Update window geometry
-            self.root.geometry(f"{self.default_width}x{self.default_height}+{x}+{y}")
+            # Calculate new left panel width (20% of window width, max 300px)
+            new_left_width = min(300, max(200, int(current_width * 0.2)))
             
+            # Update left panel container if it exists
+            if hasattr(self, 'left_panel_container'):
+                self.left_panel_container.configure(width=new_left_width)
+            
+            # Update scroll canvas if it exists and has content
+            if hasattr(self, 'scroll_canvas'):
+                try:
+                    # Only update if canvas exists and has content
+                    if self.scroll_canvas.find_all():
+                        self.scroll_canvas.configure(width=new_left_width-20)
+                        self.scroll_canvas.itemconfig(
+                            self.scroll_canvas.find_all()[0],
+                            width=new_left_width-20
+                        )
+                except tk.TclError:
+                    pass  # Handle case where canvas is being destroyed
+            
+            # Redraw map if it exists
+            if hasattr(self, 'map_canvas') and self.map_canvas:
+                try:
+                    self.map_canvas.draw()
+                except Exception:
+                    pass  # Handle any drawing errors silently
+                    
             # Force geometry update
             self.root.update_idletasks()
+                
+        except Exception as e:
+            print(f"Warning: Panel update error: {str(e)}")  # For debugging
+            pass  # Silently handle any errors
 
 class SingleYearAnalysis:
     def __init__(self, parent, main_app):
@@ -1212,9 +1286,8 @@ class SingleYearAnalysis:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # Set window to full screen but allow movement
-        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-        self.root.state('zoomed')
+        # Set initial size but don't maximize yet - that will be done by the calling method
+        self.root.geometry(f"{screen_width}x{screen_height}")
         
         # Ensure window can be moved and resized
         self.root.resizable(True, True)
@@ -1744,24 +1817,68 @@ class SingleYearAnalysis:
                 )
     
     def on_window_resize(self, event=None):
-        if self.root.state() == 'normal':  # Only handle when window is restored (not maximized)
-            # Recalculate screen center
-            screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
+        try:
+            # Get current window dimensions
+            current_width = self.root.winfo_width()
+            current_height = self.root.winfo_height()
             
-            # Ensure we maintain 80% size
-            self.default_width = int(screen_width * 0.8)
-            self.default_height = int(screen_height * 0.8)
+            # Only process if we have valid dimensions
+            if current_width <= 1 or current_height <= 1:
+                return
+                
+            # Store current dimensions for restoring from maximize
+            if not hasattr(self, 'last_valid_size'):
+                self.last_valid_size = {
+                    'width': current_width,
+                    'height': current_height,
+                    'x': self.root.winfo_x(),
+                    'y': self.root.winfo_y()
+                }
             
-            # Recalculate center position
-            x = (screen_width - self.default_width) // 2
-            y = (screen_height - self.default_height) // 2
+            # Update panels if needed
+            self.update_panel_sizes()
+                
+        except Exception as e:
+            print(f"Warning: Resize handling error: {str(e)}")  # For debugging
+            pass  # Silently handle any errors during resize
+
+    def update_panel_sizes(self):
+        try:
+            current_width = self.root.winfo_width()
             
-            # Update window geometry
-            self.root.geometry(f"{self.default_width}x{self.default_height}+{x}+{y}")
+            # Calculate new left panel width (20% of window width, max 300px)
+            new_left_width = min(300, max(200, int(current_width * 0.2)))
             
+            # Update left panel container if it exists
+            if hasattr(self, 'left_panel_container'):
+                self.left_panel_container.configure(width=new_left_width)
+            
+            # Update scroll canvas if it exists and has content
+            if hasattr(self, 'scroll_canvas'):
+                try:
+                    # Only update if canvas exists and has content
+                    if self.scroll_canvas.find_all():
+                        self.scroll_canvas.configure(width=new_left_width-20)
+                        self.scroll_canvas.itemconfig(
+                            self.scroll_canvas.find_all()[0],
+                            width=new_left_width-20
+                        )
+                except tk.TclError:
+                    pass  # Handle case where canvas is being destroyed
+            
+            # Redraw map if it exists
+            if hasattr(self, 'map_canvas') and self.map_canvas:
+                try:
+                    self.map_canvas.draw()
+                except Exception:
+                    pass  # Handle any drawing errors silently
+                    
             # Force geometry update
             self.root.update_idletasks()
+                
+        except Exception as e:
+            print(f"Warning: Panel update error: {str(e)}")  # For debugging
+            pass  # Silently handle any errors
 
     def initialize_gui(self):
         # Configure style
@@ -1795,13 +1912,13 @@ class SingleYearAnalysis:
         left_panel_width = min(300, int(screen_width * 0.2))  # 20% of screen width or 300px, whichever is smaller
         
         # Create left panel for controls with scrollbar
-        left_panel_container = ttk.Frame(main_container, width=left_panel_width)
-        left_panel_container.pack(side='left', fill='y', padx=(0, 20))
-        left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
+        self.left_panel_container = ttk.Frame(main_container, width=left_panel_width)  # Start with default width
+        self.left_panel_container.pack(side='left', fill='y', padx=(0, 20))
+        self.left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
         
         # Back button at the top of left panel container (outside scroll area)
         back_button = ttk.Button(
-            left_panel_container,
+            self.left_panel_container,
             text="← Back to Selection",
             command=self.go_back,
             style='Back.TButton'
@@ -1809,11 +1926,20 @@ class SingleYearAnalysis:
         back_button.pack(fill='x', pady=(0, 10))
         
         # Add scrollbar
-        scrollbar = ttk.Scrollbar(left_panel_container)
+        scrollbar = ttk.Scrollbar(self.left_panel_container)
         scrollbar.pack(side='right', fill='y')
         
-        # Create canvas for scrollable content
-        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=left_panel_width-20)  # Adjust for scrollbar
+        # Create canvas for scrollable content with matching background
+        bg_color = style.lookup('TFrame', 'background')  # Get ttk frame background color
+        if not bg_color:  # Fallback if style lookup fails
+            bg_color = self.left_panel_container.cget('background')
+        self.scroll_canvas = Canvas(
+            self.left_panel_container,
+            yscrollcommand=scrollbar.set,
+            width=left_panel_width-20,
+            bg=bg_color,
+            highlightthickness=0  # Remove border
+        )
         self.scroll_canvas.pack(side='left', fill='y')
         
         scrollbar.config(command=self.scroll_canvas.yview)
@@ -1963,27 +2089,18 @@ class SingleYearAnalysis:
         self.right_panel = ttk.Frame(main_container)
         self.right_panel.pack(side='left', fill='both', expand=True)
         
-        # Function to update panel sizes on window resize
-        def update_panel_sizes(event=None):
-            if event and event.widget != self.root:
-                return
-                
-            current_width = self.root.winfo_width()
-            new_left_width = min(300, int(current_width * 0.2))
-            
-            # Update left panel width
-            left_panel_container.configure(width=new_left_width)
-            self.scroll_canvas.configure(width=new_left_width-20)
-            self.scroll_canvas.itemconfig(self.scroll_canvas.find_all()[0], width=new_left_width-20)
-            
-            # Right panel will automatically adjust due to expand=True
-            
-            # If there's a map canvas, trigger a redraw
-            if hasattr(self, 'map_canvas') and self.map_canvas:
-                self.map_canvas.draw()
+        # Bind resize event to the main update function
+        self.root.bind('<Configure>', self.on_window_resize)
         
-        # Bind resize event
-        self.root.bind('<Configure>', update_panel_sizes)
+        # Store initial window size
+        self.last_valid_size = {
+            'width': self.root.winfo_width(),
+            'height': self.root.winfo_height(),
+            'x': self.root.winfo_x(),
+            'y': self.root.winfo_y()
+        }
+        
+        # Remove the local update_panel_sizes function and use the class method instead
         
         # Configure scrolling
         def on_configure(event):
@@ -2003,8 +2120,18 @@ class SingleYearAnalysis:
     
     def go_back(self):
         """Return to the selection screen"""
+        # Store current position and state
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        current_state = self.root.state()
         self.root.destroy()
-        SelectionScreen(self.root.master, self.main_app, from_analysis=True)
+        selection = SelectionScreen(self.root.master, self.main_app, from_analysis=True)
+        # Set position first
+        selection.root.geometry(f"{selection.root.winfo_screenwidth()}x{selection.root.winfo_screenheight()}+{x}+{y}")
+        selection.root.update()  # Force geometry update
+        # Restore the previous window state
+        if current_state == 'zoomed':
+            selection.root.state('zoomed')
 
 class DualYearAnalysis:
     def __init__(self, parent, main_app):
@@ -2036,9 +2163,8 @@ class DualYearAnalysis:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         
-        # Set window to full screen but allow movement
-        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
-        self.root.state('zoomed')
+        # Set initial size but don't maximize yet - that will be done by the calling method
+        self.root.geometry(f"{screen_width}x{screen_height}")
         
         # Ensure window can be moved and resized
         self.root.resizable(True, True)
@@ -2587,24 +2713,68 @@ class DualYearAnalysis:
                 )
     
     def on_window_resize(self, event=None):
-        if self.root.state() == 'normal':  # Only handle when window is restored (not maximized)
-            # Recalculate screen center
-            screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
+        try:
+            # Get current window dimensions
+            current_width = self.root.winfo_width()
+            current_height = self.root.winfo_height()
             
-            # Ensure we maintain 80% size
-            self.default_width = int(screen_width * 0.8)
-            self.default_height = int(screen_height * 0.8)
+            # Only process if we have valid dimensions
+            if current_width <= 1 or current_height <= 1:
+                return
+                
+            # Store current dimensions for restoring from maximize
+            if not hasattr(self, 'last_valid_size'):
+                self.last_valid_size = {
+                    'width': current_width,
+                    'height': current_height,
+                    'x': self.root.winfo_x(),
+                    'y': self.root.winfo_y()
+                }
             
-            # Recalculate center position
-            x = (screen_width - self.default_width) // 2
-            y = (screen_height - self.default_height) // 2
+            # Update panels if needed
+            self.update_panel_sizes()
+                
+        except Exception as e:
+            print(f"Warning: Resize handling error: {str(e)}")  # For debugging
+            pass  # Silently handle any errors during resize
+
+    def update_panel_sizes(self):
+        try:
+            current_width = self.root.winfo_width()
             
-            # Update window geometry
-            self.root.geometry(f"{self.default_width}x{self.default_height}+{x}+{y}")
+            # Calculate new left panel width (20% of window width, max 300px)
+            new_left_width = min(300, max(200, int(current_width * 0.2)))
             
+            # Update left panel container if it exists
+            if hasattr(self, 'left_panel_container'):
+                self.left_panel_container.configure(width=new_left_width)
+            
+            # Update scroll canvas if it exists and has content
+            if hasattr(self, 'scroll_canvas'):
+                try:
+                    # Only update if canvas exists and has content
+                    if self.scroll_canvas.find_all():
+                        self.scroll_canvas.configure(width=new_left_width-20)
+                        self.scroll_canvas.itemconfig(
+                            self.scroll_canvas.find_all()[0],
+                            width=new_left_width-20
+                        )
+                except tk.TclError:
+                    pass  # Handle case where canvas is being destroyed
+            
+            # Redraw map if it exists
+            if hasattr(self, 'map_canvas') and self.map_canvas:
+                try:
+                    self.map_canvas.draw()
+                except Exception:
+                    pass  # Handle any drawing errors silently
+                    
             # Force geometry update
             self.root.update_idletasks()
+                
+        except Exception as e:
+            print(f"Warning: Panel update error: {str(e)}")  # For debugging
+            pass  # Silently handle any errors
 
     def initialize_gui(self):
         # Configure style
@@ -2638,13 +2808,13 @@ class DualYearAnalysis:
         left_panel_width = min(300, int(screen_width * 0.2))  # 20% of screen width or 300px, whichever is smaller
         
         # Create left panel for controls with scrollbar
-        left_panel_container = ttk.Frame(main_container, width=left_panel_width)
-        left_panel_container.pack(side='left', fill='y', padx=(0, 20))
-        left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
+        self.left_panel_container = ttk.Frame(main_container, width=left_panel_width)  # Start with default width
+        self.left_panel_container.pack(side='left', fill='y', padx=(0, 20))
+        self.left_panel_container.pack_propagate(False)  # Prevent the frame from shrinking
         
         # Back button at the top of left panel container (outside scroll area)
         back_button = ttk.Button(
-            left_panel_container,
+            self.left_panel_container,
             text="← Back to Selection",
             command=self.go_back,
             style='Back.TButton'
@@ -2652,11 +2822,20 @@ class DualYearAnalysis:
         back_button.pack(fill='x', pady=(0, 10))
         
         # Add scrollbar
-        scrollbar = ttk.Scrollbar(left_panel_container)
+        scrollbar = ttk.Scrollbar(self.left_panel_container)
         scrollbar.pack(side='right', fill='y')
         
-        # Create canvas for scrollable content
-        self.scroll_canvas = Canvas(left_panel_container, yscrollcommand=scrollbar.set, width=left_panel_width-20)  # Adjust for scrollbar
+        # Create canvas for scrollable content with matching background
+        bg_color = style.lookup('TFrame', 'background')  # Get ttk frame background color
+        if not bg_color:  # Fallback if style lookup fails
+            bg_color = self.left_panel_container.cget('background')
+        self.scroll_canvas = Canvas(
+            self.left_panel_container,
+            yscrollcommand=scrollbar.set,
+            width=left_panel_width-20,
+            bg=bg_color,
+            highlightthickness=0  # Remove border
+        )
         self.scroll_canvas.pack(side='left', fill='y')
         
         scrollbar.config(command=self.scroll_canvas.yview)
@@ -2824,27 +3003,18 @@ class DualYearAnalysis:
         self.right_panel = ttk.Frame(main_container)
         self.right_panel.pack(side='left', fill='both', expand=True)
         
-        # Function to update panel sizes on window resize
-        def update_panel_sizes(event=None):
-            if event and event.widget != self.root:
-                return
-                
-            current_width = self.root.winfo_width()
-            new_left_width = min(300, int(current_width * 0.2))
-            
-            # Update left panel width
-            left_panel_container.configure(width=new_left_width)
-            self.scroll_canvas.configure(width=new_left_width-20)
-            self.scroll_canvas.itemconfig(self.scroll_canvas.find_all()[0], width=new_left_width-20)
-            
-            # Right panel will automatically adjust due to expand=True
-            
-            # If there's a map canvas, trigger a redraw
-            if hasattr(self, 'map_canvas') and self.map_canvas:
-                self.map_canvas.draw()
+        # Bind resize event to the main update function
+        self.root.bind('<Configure>', self.on_window_resize)
         
-        # Bind resize event
-        self.root.bind('<Configure>', update_panel_sizes)
+        # Store initial window size
+        self.last_valid_size = {
+            'width': self.root.winfo_width(),
+            'height': self.root.winfo_height(),
+            'x': self.root.winfo_x(),
+            'y': self.root.winfo_y()
+        }
+        
+        # Remove the local update_panel_sizes function and use the class method instead
         
         # Configure scrolling
         def on_configure(event):
@@ -2864,8 +3034,18 @@ class DualYearAnalysis:
     
     def go_back(self):
         """Return to the selection screen"""
+        # Store current position and state
+        x = self.root.winfo_x()
+        y = self.root.winfo_y()
+        current_state = self.root.state()
         self.root.destroy()
-        SelectionScreen(self.root.master, self.main_app, from_analysis=True)
+        selection = SelectionScreen(self.root.master, self.main_app, from_analysis=True)
+        # Set position first
+        selection.root.geometry(f"{selection.root.winfo_screenwidth()}x{selection.root.winfo_screenheight()}+{x}+{y}")
+        selection.root.update()  # Force geometry update
+        # Restore the previous window state
+        if current_state == 'zoomed':
+            selection.root.state('zoomed')
 
 if __name__ == "__main__":
     app = MainApplication()
