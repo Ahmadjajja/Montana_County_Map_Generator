@@ -55,7 +55,7 @@ class SplashScreen:
         # Add title
         title = ttk.Label(
             frame, 
-            text="Montana Bee County Map Generator",
+            text="Montana County Distribution Map Generator",
             font=('Helvetica', 16, 'bold'),
             foreground='dark green'
         )
@@ -229,7 +229,7 @@ class SelectionScreen:
         
         title_label = ttk.Label(
             title_frame,
-            text="Montana Bee County Map Generator",
+            text="Montana County Distribution Map Generator",
             style='Title.TLabel'
         )
         title_label.pack()
@@ -298,7 +298,7 @@ class SelectionScreen:
         current_year = datetime.datetime.now().year
         copyright_label = ttk.Label(
             footer_frame,
-            text=f"© {current_year} Montana Bee Project",
+            text=f"© {current_year} Montana County Distribution Project",
             font=('Helvetica', 8),
             foreground='gray'
         )
@@ -951,7 +951,7 @@ class MainApplication:
         title_frame.pack(fill='x', pady=(0, 20))
         title_label = ttk.Label(
             title_frame, 
-            text="Montana Bee County Map Generator - Single Year Analysis", 
+            text="Montana County Distribution Map Generator - Single Year Analysis", 
             style='Title.TLabel',
             foreground='dark green'
         )
@@ -1259,7 +1259,7 @@ class MainApplication:
 class SingleYearAnalysis:
     def __init__(self, parent, main_app):
         self.root = tk.Toplevel(parent)
-        self.root.title("Single Year Analysis - Montana Bee County Map Generator")
+        self.root.title("Single Year Analysis - Montana County Distribution Map Generator")
         
         # Allow the window to be moved to any screen
         self.root.attributes('-alpha', 1.0)
@@ -1901,7 +1901,7 @@ class SingleYearAnalysis:
         title_frame.pack(fill='x', pady=(0, 20))
         title_label = ttk.Label(
             title_frame, 
-            text="Montana Bee County Map Generator - Single Year Analysis", 
+            text="Montana County Distribution Map Generator - Single Year Analysis", 
             style='Title.TLabel',
             foreground='dark green'
         )
@@ -2136,7 +2136,7 @@ class SingleYearAnalysis:
 class DualYearAnalysis:
     def __init__(self, parent, main_app):
         self.root = tk.Toplevel(parent)
-        self.root.title("Dual Year Analysis - Montana Bee County Map Generator")
+        self.root.title("Dual Year Analysis - Montana County Distribution Map Generator")
         
         # Allow the window to be moved to any screen
         self.root.attributes('-alpha', 1.0)
@@ -2797,7 +2797,7 @@ class DualYearAnalysis:
         title_frame.pack(fill='x', pady=(0, 20))
         title_label = ttk.Label(
             title_frame, 
-            text="Montana Bee County Map Generator - Dual Year Analysis", 
+            text="Montana County Distribution Map Generator - Dual Year Analysis", 
             style='Title.TLabel',
             foreground='dark green'
         )
