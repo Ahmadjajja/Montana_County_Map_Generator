@@ -5,6 +5,7 @@ from pathlib import Path
 import datetime
 import sys
 import pandas as pd
+import matplotlib as mpl
 
 def get_screen_geometry():
     """Get the geometry of all available screens"""
@@ -1090,6 +1091,19 @@ class MainApplication:
         ttk.Label(year_frame, text="Year (Optional):", style='TLabel').pack(fill='x')
         ttk.Entry(year_frame, textvariable=self.year_var).pack(fill='x')
         
+        # Export Format Selection Section
+        export_frame = ttk.LabelFrame(left_panel, text="Export Format & Options", padding="10")
+        export_frame.pack(fill='x', pady=(0, 20))
+        
+        radio_tiff = ttk.Radiobutton(export_frame, text="Michael's TIFF (For Rulers Only).tiff", variable=self.export_format_var, value='tiff')
+        radio_tiff.pack(fill='x', pady=(0, 0))
+        
+        radio_svg = ttk.Radiobutton(export_frame, text="Casey's SVG (For the Rest of Us).svg", variable=self.export_format_var, value='svg')
+        radio_svg.pack(fill='x', pady=(0, 0))
+        
+        radio_jpg = ttk.Radiobutton(export_frame, text="Compatible JPG (For All).jpg", variable=self.export_format_var, value='jpg')
+        radio_jpg.pack(fill='x', pady=(0, 0))
+        
         # Species Selection Section
         species_frame = ttk.LabelFrame(left_panel, text="Species Selection", padding="10")
         species_frame.pack(fill='x', pady=(0, 20))
@@ -1306,12 +1320,14 @@ class SingleYearAnalysis:
         self.selected_genus = StringVar(self.root)
         self.selected_species = StringVar(self.root)
         self.selected_file_var = StringVar(self.root)
+        self.export_format_var = StringVar(self.root)
         
         # Set default values
         self.pre_color.set("grey")
         self.post_color.set("red")
         self.all_color.set("yellow")
         self.selected_file_var.set("No file selected")
+        self.export_format_var.set("tiff")  # Default to tiff
         
         # Create toast notification instance
         self.toast = ToastNotification(self.root)
@@ -1781,40 +1797,53 @@ class SingleYearAnalysis:
         print("✅ Map generated successfully!")
     
     def download_map(self):
-        if self.current_fig:
-            try:
-                # Get Downloads folder path
-                downloads_path = str(Path.home() / "Downloads")
-                
-                # Get taxonomic info and year
-                fam = self.selected_family.get().strip().title()
-                gen = self.selected_genus.get().strip().title()
-                spec = self.selected_species.get().strip().lower()
-                year = self.year_var.get().strip()
-                
-                # Create timestamp with current date (YYYYMMDD_HHMM)
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-                
-                # Create filename with taxonomic info
-                year_info = f"_{year}" if year else ""
-                filename = f"{fam}-{gen}-{spec}{year_info}_{timestamp}.tiff"
-                
-                # Full path for the file
-                file_path = os.path.join(downloads_path, filename)
-                
-                # Save the figure
-                self.current_fig.savefig(file_path, format="tiff", dpi=300)
-                
-                # Show toast notification
-                self.toast.show_toast(f"Map saved as {filename}")
-                
-                print(f"✅ TIFF map saved as '{file_path}'")
-                
-            except Exception as e:
-                messagebox.showerror("Error", 
-                    f"Error saving file:\n{str(e)}\n\n"
-                    "Please try again."
-                )
+        """Download the current map in the selected format"""
+        if not hasattr(self, 'current_fig') or self.current_fig is None:
+            messagebox.showerror("Error", "No map to download. Please generate a map first.")
+            return
+        
+        # Get export format
+        export_format = self.export_format_var.get()
+        
+        # Set up file naming
+        downloads_path = str(Path.home() / "Downloads")
+        fam = self.selected_family.get().strip().title()
+        gen = self.selected_genus.get().strip().title()
+        sp = self.selected_species.get().strip().lower()
+        year = self.year_var.get().strip()
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        
+        # Create filename based on format
+        year_info = f"_{year}" if year else ""
+        if export_format == 'svg':
+            filename = f"{fam}-{gen}-{sp}{year_info}_{timestamp}.svg"
+        elif export_format == 'tiff':
+            filename = f"{fam}-{gen}-{sp}{year_info}_{timestamp}.tiff"
+        elif export_format == 'jpg':
+            filename = f"{fam}-{gen}-{sp}{year_info}_{timestamp}.jpg"
+        else:
+            filename = f"{fam}-{gen}-{sp}{year_info}_{timestamp}.tiff"  # Default fallback
+        
+        file_path = os.path.join(downloads_path, filename)
+        
+        try:
+            # Configure matplotlib settings for the export format
+            mpl.rcParams['font.family'] = 'serif'
+            mpl.rcParams['font.serif'] = ['Times New Roman', 'Times', 'DejaVu Serif', 'serif']
+            
+            # Special configuration for SVG to preserve text as editable elements
+            if export_format == 'svg':
+                mpl.rcParams['svg.fonttype'] = 'none'
+            
+            # Save the figure
+            self.current_fig.savefig(file_path, format=export_format, bbox_inches='tight', dpi=300)
+            
+            # Show success message
+            self.toast.show_toast(f'Map saved as {filename} in Downloads!')
+            print(f"✅ Map saved as {export_format} file: {file_path}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error saving map:\n{str(e)}\n\nPlease try again.")
     
     def on_window_resize(self, event=None):
         try:
@@ -2040,6 +2069,19 @@ class SingleYearAnalysis:
         ttk.Label(year_frame, text="Year (Optional):", style='TLabel').pack(fill='x')
         ttk.Entry(year_frame, textvariable=self.year_var).pack(fill='x')
         
+        # Export Format Selection Section
+        export_frame = ttk.LabelFrame(left_panel, text="Export Format & Options", padding="10")
+        export_frame.pack(fill='x', pady=(0, 20))
+        
+        radio_tiff = ttk.Radiobutton(export_frame, text="Michael's TIFF (For Rulers Only).tiff", variable=self.export_format_var, value='tiff')
+        radio_tiff.pack(fill='x', pady=(0, 0))
+        
+        radio_svg = ttk.Radiobutton(export_frame, text="Casey's SVG (For the Rest of Us).svg", variable=self.export_format_var, value='svg')
+        radio_svg.pack(fill='x', pady=(0, 0))
+        
+        radio_jpg = ttk.Radiobutton(export_frame, text="Compatible JPG (For All).jpg", variable=self.export_format_var, value='jpg')
+        radio_jpg.pack(fill='x', pady=(0, 0))
+        
         # Species Selection Section
         species_frame = ttk.LabelFrame(left_panel, text="Species Selection", padding="10")
         species_frame.pack(fill='x', pady=(0, 20))
@@ -2184,12 +2226,14 @@ class DualYearAnalysis:
         self.selected_genus = StringVar(self.root)
         self.selected_species = StringVar(self.root)
         self.selected_file_var = StringVar(self.root)
+        self.export_format_var = StringVar(self.root)
         
         # Set default values
         self.first_color.set("grey")  # For records ≤ first year
         self.second_color.set("red")  # For records between years
         self.third_color.set("yellow")  # For records > second year
         self.selected_file_var.set("No file selected")
+        self.export_format_var.set("tiff")  # Default to tiff
         
         # Create toast notification instance
         self.toast = ToastNotification(self.root)
@@ -2677,40 +2721,53 @@ class DualYearAnalysis:
         print("✅ Map generated successfully!")
     
     def download_map(self):
-        if self.current_fig:
-            try:
-                # Get Downloads folder path
-                downloads_path = str(Path.home() / "Downloads")
-                
-                # Get taxonomic info and years
-                fam = self.selected_family.get().strip().title()
-                gen = self.selected_genus.get().strip().title()
-                spec = self.selected_species.get().strip().lower()
-                first_year = self.first_year_var.get().strip()
-                second_year = self.second_year_var.get().strip()
-                
-                # Create timestamp with current date (YYYYMMDD_HHMM)
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-                
-                # Create filename with taxonomic info
-                filename = f"{fam}-{gen}-{spec}_{first_year}-{second_year}_{timestamp}.tiff"
-                
-                # Full path for the file
-                file_path = os.path.join(downloads_path, filename)
-                
-                # Save the figure
-                self.current_fig.savefig(file_path, format="tiff", dpi=300)
-                
-                # Show toast notification
-                self.toast.show_toast(f"Map saved as {filename}")
-                
-                print(f"✅ TIFF map saved as '{file_path}'")
-                
-            except Exception as e:
-                messagebox.showerror("Error", 
-                    f"Error saving file:\n{str(e)}\n\n"
-                    "Please try again."
-                )
+        """Download the current map in the selected format"""
+        if not hasattr(self, 'current_fig') or self.current_fig is None:
+            messagebox.showerror("Error", "No map to download. Please generate a map first.")
+            return
+        
+        # Get export format
+        export_format = self.export_format_var.get()
+        
+        # Set up file naming
+        downloads_path = str(Path.home() / "Downloads")
+        fam = self.selected_family.get().strip().title()
+        gen = self.selected_genus.get().strip().title()
+        sp = self.selected_species.get().strip().lower()
+        first_year = self.first_year_var.get().strip()
+        second_year = self.second_year_var.get().strip()
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        
+        # Create filename based on format
+        if export_format == 'svg':
+            filename = f"{fam}-{gen}-{sp}_{first_year}-{second_year}_{timestamp}.svg"
+        elif export_format == 'tiff':
+            filename = f"{fam}-{gen}-{sp}_{first_year}-{second_year}_{timestamp}.tiff"
+        elif export_format == 'jpg':
+            filename = f"{fam}-{gen}-{sp}_{first_year}-{second_year}_{timestamp}.jpg"
+        else:
+            filename = f"{fam}-{gen}-{sp}_{first_year}-{second_year}_{timestamp}.tiff"  # Default fallback
+        
+        file_path = os.path.join(downloads_path, filename)
+        
+        try:
+            # Configure matplotlib settings for the export format
+            mpl.rcParams['font.family'] = 'serif'
+            mpl.rcParams['font.serif'] = ['Times New Roman', 'Times', 'DejaVu Serif', 'serif']
+            
+            # Special configuration for SVG to preserve text as editable elements
+            if export_format == 'svg':
+                mpl.rcParams['svg.fonttype'] = 'none'
+            
+            # Save the figure
+            self.current_fig.savefig(file_path, format=export_format, bbox_inches='tight', dpi=300)
+            
+            # Show success message
+            self.toast.show_toast(f'Map saved as {filename} in Downloads!')
+            print(f"✅ Map saved as {export_format} file: {file_path}")
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error saving map:\n{str(e)}\n\nPlease try again.")
     
     def on_window_resize(self, event=None):
         try:
@@ -2953,6 +3010,19 @@ class DualYearAnalysis:
             wraplength=250
         )
         year_helper.pack(fill='x', pady=(10, 0))
+        
+        # Export Format Selection Section
+        export_frame = ttk.LabelFrame(left_panel, text="Export Format & Options", padding="10")
+        export_frame.pack(fill='x', pady=(0, 20))
+        
+        radio_tiff = ttk.Radiobutton(export_frame, text="Michael's TIFF (For Rulers Only).tiff", variable=self.export_format_var, value='tiff')
+        radio_tiff.pack(fill='x', pady=(0, 0))
+        
+        radio_svg = ttk.Radiobutton(export_frame, text="Casey's SVG (For the Rest of Us).svg", variable=self.export_format_var, value='svg')
+        radio_svg.pack(fill='x', pady=(0, 0))
+        
+        radio_jpg = ttk.Radiobutton(export_frame, text="Compatible JPG (For All).jpg", variable=self.export_format_var, value='jpg')
+        radio_jpg.pack(fill='x', pady=(0, 0))
         
         # Species Selection Section
         species_frame = ttk.LabelFrame(left_panel, text="Species Selection", padding="10")
